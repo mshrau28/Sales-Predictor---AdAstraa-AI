@@ -1,7 +1,7 @@
 
 # 📌 **Sale Amount Prediction – Django ML Web App**
 
-This project is a full end-to-end machine learning + Django web application that predicts **Sale_Amount** from messy marketing campaign data.
+This project is a full end-to-end machine learning + Django web application that predicts **Sale_Amount** from messy data.
 
 The dataset intentionally contains real-world issues such as:
 - inconsistent date formats  
@@ -17,7 +17,7 @@ The goal is to build:
 
 ---
 
-# 🚀 **Project Structure**
+#  **Project Structure**
 
 ```
 marketing_assignment/
@@ -44,36 +44,36 @@ marketing_assignment/
 
 ---
 
-# 📊 **1. Data Cleaning & Preparation**
+#  **1. Data Cleaning & Preparation**
 
-### ✔ Cleaning `Cost`  
+### - Cleaning `Cost`  
 - Removed currency symbols  
 - Converted to float  
 
-### ✔ Standardizing categorical text  
+### - Standardizing categorical text  
 (all lowercased + stripped)
 
-### ✔ Date normalization  
+### - Date normalization  
 Extracted:  
 - `Ad_Year`, `Ad_Month`, `Ad_DayOfWeek`
 
-### ✔ Correcting Conversion Rate  
+### - Correcting Conversion Rate  
 Recomputed safely as:  
 ```
 Conversions / Clicks
 ```
 
-### ✔ Missing value handling  
+### - Missing value handling  
 - numeric → median  
 - categorical → most frequent  
 
-### ✔ Duplicate removal  
+### - Duplicate removal  
 
 All this is implemented in **`add_features()`** so that training *and* Django prediction use the same logic.
 
 ---
 
-# 🤖 **2. Modeling Approach**
+#  **2. Modeling Approach**
 
 The original **Sale_Amount** was random and unrelated to features.  
 Therefore, a meaningful synthetic target was engineered:
@@ -98,7 +98,7 @@ Validation R² ≈ 0.78 – 0.88
 
 ---
 
-# 🌐 **3. Django Web Application**
+#  **3. Django Web Application**
 
 Features:
 - Upload a test CSV  
@@ -108,7 +108,7 @@ Features:
 
 ---
 
-# 🛠 **4. Running the Project**
+#  **4. Running the Project**
 
 ### Create virtual environment:
 ```
@@ -144,16 +144,3 @@ http://127.0.0.1:8000/
 ```
 
 ---
-
-# 📌 **Requirements**
-
-```
-django==5.2.8
-pandas
-numpy
-scikit-learn
-joblib
-```
-
----
-
