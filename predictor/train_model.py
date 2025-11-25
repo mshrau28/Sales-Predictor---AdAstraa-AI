@@ -1,7 +1,7 @@
 # Importing libraries
-import os
 import joblib
 import pandas as pd
+import numpy as np
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
@@ -9,50 +9,59 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler, FunctionTransfo
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, r2_score
-from .ml_utils import add_features
+from sklearn.linear_model import LinearRegression, Ridge
+#from .ml_utils import add_features
 
 # Load CSV from same directory
 df = pd.read_csv("marketing_train.csv")
 
-def build_engineered_target(df_raw: pd.DataFrame) -> pd.Series:
-    """Build a synthetic but learnable target Sale_Amount from cleaned features."""
-    X_base = df_raw.drop(columns=["Sale_Amount"], errors="ignore")
-    feat = add_features(X_base.copy())
-
-    for col in ["Clicks", "Impressions", "Conversions", "Cost"]:
-        if col not in feat.columns:
-            feat[col] = 0.0
-
-    clicks = feat["Clicks"].fillna(0.0)
-    imps = feat["Impressions"].fillna(0.0)
-    conv = feat["Conversions"].fillna(0.0)
-    cost = feat["Cost"].fillna(0.0)
-
-    return (
-        conv * 220.0
-        + clicks * 2.0
-        + (imps / 1000.0) * 5.0
-        + cost * 3.0
-    )
-
-
-def main():
-    # 1. Load raw data
-    df = pd.read_csv("train.csv")
-
-    # 2. Remove duplicates
+def clean_ad_data(df: pd.DataFrame) -> pd.DataFrame:
+    #1. Remove duplicates
     df = df.drop_duplicates()
 
-    # 3. Synthetic target
-    y = build_engineered_target(df)
+    #2. Clean Sale_Amount column - remove $ and convert to numeric
+    df['Sale_Amount'] = df['Sale_Amount'].replace(r'[$,]', '', regex=True).astype(float)
+    df['Sale_Amount'] = df['Sale_Amount'].fillna(df['Sale_Amount'].median())
 
-    # 4. Features
-    X = df.drop(columns=["Sale_Amount"], errors="ignore")
+    #3. Fix casing in categorical columns
+    cat_cols = ['Campaign_Name', 'Location', 'Device', 'Keyword']
+    for col in cat_cols:
+        df[col] = df[col].astype(str).str.strip().str.title()
 
-    X_fe = add_features(X)
+    #4. Handle missing values
+    df['Clicks'] = df['Clicks'].fillna(df['Clicks'].median())
+    df['Leads'] = df['Leads'].fillna(0)
+    df['Impressions'] = df['Impressions'].fillna(df['Impressions'].median())
+    df['Keyword'] = df['Keyword'].replace('nan', np.nan).fillna('Unknown Keyword')
 
-    numeric_cols = X_fe.select_dtypes(include=["number"]).columns.tolist()
-    categorical_cols = [c for c in X_fe.columns if c not in numeric_cols]
+    #5. Fix conversion rate based on clicks & leads if mismatch
+    df['Conversion Rate']=df['Leads']/df['Clicks']
+
+    #6. Fix common typos in keywords
+    typo_corrections = {
+        'Data Analitics Course': 'Data Analytics Course',
+        'Data Analitcs Course': 'Data Analytics Course',
+        'Data Anlytics': 'Data Analytics',
+        'Analitics': 'Analytics'
+    }
+    df['Keyword'] = df['Keyword'].replace(typo_corrections)
+
+    return df
+
+def main():
+    #1. Load raw data
+    df = pd.read_csv("marketing_train.csv")
+
+    #2. Clean data
+    df = clean_ad_data(df)
+
+    X = df[['Ad_ID', 'Campaign_Name', 'Clicks', 'Impressions', 'Cost',
+        'Leads', 'Conversions', 'Conversion Rate', 'Ad_Date',
+        'Location', 'Device', 'Keyword']]
+    y=df['Sale_Amount']
+
+    numeric_cols = X.select_dtypes(include=["number"]).columns.tolist()
+    categorical_cols = [c for c in X.columns if c not in numeric_cols]
 
     print("Numeric columns:", numeric_cols)
     print("Categorical columns:", categorical_cols)
@@ -80,7 +89,6 @@ def main():
 
     full_pipeline = Pipeline(
         steps=[
-            ("feat_eng", FunctionTransformer(add_features, validate=False)),
             ("preprocess", preprocessor),
             ("model", RandomForestRegressor(
                 n_estimators=300,
@@ -93,6 +101,7 @@ def main():
         ]
     )
 
+    
     X_train, X_valid, y_train, y_valid = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
